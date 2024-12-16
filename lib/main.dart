@@ -28,10 +28,9 @@ class ImageTextEditor extends StatefulWidget {
 }
 
 class _ImageTextEditorState extends State<ImageTextEditor> {
-  Uint8List? _selectedImageBytes;
-
+  Uint8List? _imageBytes;
   Offset _textPosition = Offset(50, 50);
-  String _editableText = "Enter Text";
+  String _text = "Enter Text";
   bool _isEditing = false;
   double _textBoxWidth = 150;
   double _textBoxHeight = 50;
@@ -41,50 +40,47 @@ class _ImageTextEditorState extends State<ImageTextEditor> {
   @override
   void initState() {
     super.initState();
-    _focusNode = FocusNode(); // Initialize FocusNode for detecting focus changes
+    _focusNode = FocusNode();
   }
 
   @override
   void dispose() {
-    _focusNode.dispose(); // Clean up FocusNode when the widget is disposed
+    _focusNode.dispose();
     super.dispose();
   }
 
-  Future<void> _pickImage() async {
+  Future<void> _selectImage() async {
     final result = await FilePicker.platform.pickFiles(
       type: FileType.image,
       withData: true,
     );
 
-    if (result != null && result.files.single.bytes != null) {
+    if (result?.files.single.bytes != null) {
       setState(() {
-        _selectedImageBytes = result.files.single.bytes!;
+        _imageBytes = result!.files.single.bytes!;
       });
     }
   }
 
-  // This function is used to handle clicks outside the text box to save the text
-  void _onTapOutside() {
+  void _closeEditMode() {
     if (_isEditing) {
       setState(() {
         _isEditing = false;
       });
-      FocusScope.of(context).unfocus(); // Dismiss the keyboard if it's open
+      FocusScope.of(context).unfocus();
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text('Image Text Editor'),
-      ),
+      appBar: AppBar(title: Text('Image Text Editor')),
       body: GestureDetector(
-        onTap: _onTapOutside, // Handle tap outside to close the edit mode
-        child: _selectedImageBytes == null
+        onTap: _closeEditMode,
+        child: _imageBytes == null
             ? Center(
                 child: ElevatedButton(
-                  onPressed: _pickImage,
+                  onPressed: _selectImage,
                   child: Text('Select Image'),
                 ),
               )
@@ -92,7 +88,7 @@ class _ImageTextEditorState extends State<ImageTextEditor> {
                 children: [
                   Positioned.fill(
                     child: Image.memory(
-                      _selectedImageBytes!,
+                      _imageBytes!,
                       fit: BoxFit.cover,
                     ),
                   ),
@@ -107,14 +103,14 @@ class _ImageTextEditorState extends State<ImageTextEditor> {
                       },
                       onTap: () {
                         setState(() {
-                          _isEditing = !_isEditing; // Toggle edit mode
+                          _isEditing = !_isEditing;
                         });
                       },
                       child: Container(
                         width: _textBoxWidth,
                         height: _textBoxHeight,
                         decoration: BoxDecoration(
-                          border: Border.all(color: Colors.white, width: 2), // White border
+                          border: Border.all(color: Colors.white, width: 2),
                         ),
                         child: Stack(
                           children: [
@@ -124,10 +120,10 @@ class _ImageTextEditorState extends State<ImageTextEditor> {
                                       focusNode: _focusNode,
                                       autofocus: true,
                                       controller: TextEditingController(
-                                          text: _editableText),
-                                      onSubmitted: (value) {
+                                          text: _text),
+                                      onSubmitted: (newText) {
                                         setState(() {
-                                          _editableText = value;
+                                          _text = newText;
                                           _isEditing = false;
                                         });
                                       },
@@ -138,11 +134,11 @@ class _ImageTextEditorState extends State<ImageTextEditor> {
                                         fontSize: _textBoxHeight / 2,
                                         color: Colors.white,
                                       ),
-                                      cursorColor: Colors.white, // White cursor
+                                      cursorColor: Colors.white,
                                     )
                                   : Center(
                                       child: Text(
-                                        _editableText,
+                                        _text,
                                         style: TextStyle(
                                           fontSize: _textBoxHeight / 2,
                                           color: Colors.white,
@@ -160,12 +156,12 @@ class _ImageTextEditorState extends State<ImageTextEditor> {
                                     _textBoxWidth += details.delta.dx;
                                     _textBoxHeight += details.delta.dy;
 
-                                    if (_textBoxHeight < 20) {
-                                      _textBoxHeight = 20; // Prevent collapsing too small
-                                    }
-                                    if (_textBoxWidth < 50) {
-                                      _textBoxWidth = 50; // Minimum width
-                                    }
+                                    _textBoxWidth = _textBoxWidth < 50
+                                        ? 50
+                                        : _textBoxWidth;
+                                    _textBoxHeight = _textBoxHeight < 20
+                                        ? 20
+                                        : _textBoxHeight;
                                   });
                                 },
                                 child: Container(
