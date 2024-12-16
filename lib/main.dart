@@ -14,7 +14,7 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         primarySwatch: Colors.blue,
         textSelectionTheme: TextSelectionThemeData(
-          selectionColor: Colors.white.withOpacity(0.4), // Light white selection color
+          selectionColor: Colors.white.withOpacity(0.4),
         ),
       ),
       home: ImageTextEditor(),
@@ -34,18 +34,20 @@ class _ImageTextEditorState extends State<ImageTextEditor> {
   bool _isEditing = false;
   double _textBoxWidth = 150;
   double _textBoxHeight = 50;
-
   late FocusNode _focusNode;
+  late TextEditingController _textController;
 
   @override
   void initState() {
     super.initState();
     _focusNode = FocusNode();
+    _textController = TextEditingController(text: _text);
   }
 
   @override
   void dispose() {
     _focusNode.dispose();
+    _textController.dispose();
     super.dispose();
   }
 
@@ -62,11 +64,92 @@ class _ImageTextEditorState extends State<ImageTextEditor> {
     }
   }
 
+  void _toggleEditMode() {
+    setState(() {
+      _isEditing = !_isEditing;
+    });
+  }
+
+  void _updateText(String newText) {
+    setState(() {
+      _text = newText;
+      _isEditing = false;
+    });
+  }
+
+  Widget _buildTextBox() {
+    return GestureDetector(
+      onPanUpdate: (details) => _updateTextPosition(details.delta),
+      onTap: _toggleEditMode,
+      child: Container(
+        width: _textBoxWidth,
+        height: _textBoxHeight,
+        decoration: BoxDecoration(
+          border: Border.all(color: Colors.white, width: 2),
+        ),
+        child: Stack(
+          children: [
+            _isEditing
+                ? _buildEditableTextField()
+                : _buildTextDisplay(),
+            _buildResizeHandle(),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _updateTextPosition(Offset delta) {
+    setState(() {
+      _textPosition += delta;
+    });
+  }
+
+  Widget _buildEditableTextField() {
+    return Positioned.fill(
+      child: TextField(
+        focusNode: _focusNode,
+        autofocus: true,
+        controller: _textController,
+        onSubmitted: _updateText,
+        decoration: InputDecoration(border: InputBorder.none),
+        style: TextStyle(fontSize: _textBoxHeight / 2, color: Colors.white),
+        cursorColor: Colors.white,
+      ),
+    );
+  }
+
+  Widget _buildTextDisplay() {
+    return Center(
+      child: Text(
+        _text,
+        style: TextStyle(fontSize: _textBoxHeight / 2, color: Colors.white),
+        textAlign: TextAlign.center,
+      ),
+    );
+  }
+
+  Widget _buildResizeHandle() {
+    return Positioned(
+      bottom: 0,
+      right: 0,
+      child: GestureDetector(
+        onPanUpdate: (details) => _resizeTextBox(details.delta),
+        child: Container(width: 20, height: 20, color: Colors.blue),
+      ),
+    );
+  }
+
+  void _resizeTextBox(Offset delta) {
+    setState(() {
+      _textBoxWidth = (_textBoxWidth + delta.dx).clamp(50.0, double.infinity);
+      _textBoxHeight = (_textBoxHeight + delta.dy).clamp(20.0, double.infinity);
+    });
+  }
+
   void _closeEditMode() {
     if (_isEditing) {
-      setState(() {
-        _isEditing = false;
-      });
+      _toggleEditMode();
       FocusScope.of(context).unfocus();
     }
   }
@@ -95,86 +178,7 @@ class _ImageTextEditorState extends State<ImageTextEditor> {
                   Positioned(
                     left: _textPosition.dx,
                     top: _textPosition.dy,
-                    child: GestureDetector(
-                      onPanUpdate: (details) {
-                        setState(() {
-                          _textPosition += details.delta;
-                        });
-                      },
-                      onTap: () {
-                        setState(() {
-                          _isEditing = !_isEditing;
-                        });
-                      },
-                      child: Container(
-                        width: _textBoxWidth,
-                        height: _textBoxHeight,
-                        decoration: BoxDecoration(
-                          border: Border.all(color: Colors.white, width: 2),
-                        ),
-                        child: Stack(
-                          children: [
-                            Positioned.fill(
-                              child: _isEditing
-                                  ? TextField(
-                                      focusNode: _focusNode,
-                                      autofocus: true,
-                                      controller: TextEditingController(
-                                          text: _text),
-                                      onSubmitted: (newText) {
-                                        setState(() {
-                                          _text = newText;
-                                          _isEditing = false;
-                                        });
-                                      },
-                                      decoration: InputDecoration(
-                                        border: InputBorder.none,
-                                      ),
-                                      style: TextStyle(
-                                        fontSize: _textBoxHeight / 2,
-                                        color: Colors.white,
-                                      ),
-                                      cursorColor: Colors.white,
-                                    )
-                                  : Center(
-                                      child: Text(
-                                        _text,
-                                        style: TextStyle(
-                                          fontSize: _textBoxHeight / 2,
-                                          color: Colors.white,
-                                        ),
-                                        textAlign: TextAlign.center,
-                                      ),
-                                    ),
-                            ),
-                            Positioned(
-                              bottom: 0,
-                              right: 0,
-                              child: GestureDetector(
-                                onPanUpdate: (details) {
-                                  setState(() {
-                                    _textBoxWidth += details.delta.dx;
-                                    _textBoxHeight += details.delta.dy;
-
-                                    _textBoxWidth = _textBoxWidth < 50
-                                        ? 50
-                                        : _textBoxWidth;
-                                    _textBoxHeight = _textBoxHeight < 20
-                                        ? 20
-                                        : _textBoxHeight;
-                                  });
-                                },
-                                child: Container(
-                                  width: 20,
-                                  height: 20,
-                                  color: Colors.blue,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
+                    child: _buildTextBox(),
                   ),
                 ],
               ),
