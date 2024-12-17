@@ -1,5 +1,5 @@
 
-# Text Behind with TensorFlow Lite Segmentation
+# Text Behind Application with TensorFlow Lite Segmentation
 
 This Flutter app allows you to select an image from the gallery or capture it using the camera, and then performs image segmentation using TensorFlow Lite. The segmented image is displayed behind the text, which can be edited and positioned anywhere on the image.
 
